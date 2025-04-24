@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: rdma-service
+  namespace: monitoring
+  labels:
+    app: rdma-service
+spec:
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 20%
+  selector:
+    matchLabels:
+      app: rdma-service
+  template:
+    metadata:
+      name: "rdma-service"
+      labels:
+        app: rdma-service
+    spec:
+      hostNetwork: true
+      hostPID: true
+      tolerations:
+      - key: "NotReady"
+        operator: "Exists"
+        effect: "NoSchedule"
+      containers:
+      - image: {{.harbor}}/hpc/rdma-service:{{.version}}
+        imagePullPolicy: IfNotPresent
+        name: "rdma-service"
+        command: ['/usr/bin/env', 'bash', '-c']
+        args:
+        - |
+          rdma-service -log="/var/log/rdma-service/rdma-service.log" -termi
+        resources:
+          limits:
+            cpu: "300m"
+            memory: 400Mi
+            rdma/hca_shared_devices_all: 1
+          requests:
+            cpu: "200m"
+            memory: 200Mi
+            rdma/hca_shared_devices_all: 1
+        volumeMounts:
+        - name: dev
+          mountPath: /dev
+        - name: bin
+          mountPath: /usr/bin/
+        - name: lib64
+          mountPath: /lib64
+        - name: lib
+          mountPath: /lib
+        - name: debug
+          mountPath: /sys/kernel/debug
+        - name: tmp
+          mountPath: /tmp
+        securityContext:
+          privileged: true
+          runAsUser: 0
+      volumes:
+      - name: bin
+        hostPath:
+          path: /usr/bin/
+          type: Directory
+      - name: lib64
+        hostPath:
+          path: /lib64
+          type: Directory
+      - name: lib
+        hostPath:
+          path: /lib
+          type: Directory
+      - name: dev
+        hostPath:
+          path: /dev
+          type: Directory
+      - name: tmp
+        hostPath:
+          path: /tmp
+          type: Directory
+      - name: debug
+        hostPath:
+          path: /sys/kernel/debug
+          type: Directory
