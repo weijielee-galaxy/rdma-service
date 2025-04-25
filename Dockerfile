@@ -4,7 +4,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 ARG OFED=MLNX_OFED_LINUX-23.10-1.1.9.0-ubuntu20.04-x86_64
 ENV OFED_TAR ${OFED}.tgz
-COPY ${OFED_TAR} /tmp
+# COPY ${OFED_TAR} /tmp
 
 ARG GO_VER=1.22.6
 ARG GO_TAR=go${GO_VER}.linux-amd64.tar.gz
@@ -33,7 +33,12 @@ RUN mkdir -p /data && \
     cp /tmp/${GO_TAR} /data && \
     rm -rf /tmp/${GO_TAR}
 
-RUN echo "export PATH=\$PATH:/usr/local/go/bin/" >> /root/.bashrc && \
-    echo "export GOPROXY=\"https://mirrors.aliyun.com/goproxy\"" >> /root/.bashrc
+ENV PATH=$PATH:/usr/local/go/bin/
+
+COPY . /app
+RUN cd /app && \
+    go mod tidy && \
+    make build && \
+    cp ./bin/rdma-service /usr/local/bin/rdma-service
 
 WORKDIR /home/
